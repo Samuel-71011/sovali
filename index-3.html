@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sovali · Tu mundo en tiempo real</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<style>
+:root{--bg:#120a2e;--card:#241766;--tx:#fff7ee;--mut:#c9bff0;--pink:#ff2e93;--yel:#ffc400;--cy:#00e0c6;--or:#ff7a1a}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--tx);font-family:"Trebuchet MS",system-ui,sans-serif;line-height:1.55;overflow-x:hidden}
+.wrap{max-width:1050px;margin:0 auto;padding:0 20px}
+nav{display:flex;justify-content:space-between;align-items:center;padding:18px 0}
+.logo{font-weight:900;font-size:1.6rem;letter-spacing:-1px}
+.logo b{background:linear-gradient(90deg,var(--pink),var(--yel));-webkit-background-clip:text;background-clip:text;color:transparent}
+.btn{display:inline-block;border:0;cursor:pointer;font:inherit;font-weight:800;padding:13px 26px;border-radius:999px;color:#1a0a3a;background:linear-gradient(90deg,var(--yel),var(--or));text-decoration:none;box-shadow:0 8px 24px #ff7a1a55;transition:transform .2s}
+.btn:hover{transform:translateY(-3px) scale(1.03)}
+.btn.alt{background:linear-gradient(90deg,var(--cy),#4dffe3);box-shadow:0 8px 24px #00e0c655}
+.hero{text-align:center;padding:40px 0 30px;background:radial-gradient(circle at 20% 0,#ff2e9344,transparent 45%),radial-gradient(circle at 85% 30%,#00e0c633,transparent 40%)}
+.tag{display:inline-block;background:#ffffff18;border:1px solid #ffffff30;padding:6px 16px;border-radius:999px;font-size:.85rem;color:var(--yel)}
+h1{font-size:clamp(2.2rem,7vw,4.2rem);line-height:1.05;margin:18px 0;font-weight:900}
+h1 span{background:linear-gradient(90deg,var(--pink),var(--yel),var(--cy));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{max-width:620px;margin:0 auto 24px;color:var(--mut);font-size:1.1rem}
+.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+h2{font-size:clamp(1.6rem,4vw,2.3rem);text-align:center;margin-bottom:8px}
+.sub{text-align:center;color:var(--mut);margin-bottom:20px}
+section{padding:40px 0}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 12px}
+.chip{flex:none;border:2px solid var(--c);background:transparent;color:var(--tx);padding:7px 13px;border-radius:999px;font:inherit;font-size:.88rem;cursor:pointer;font-weight:700}
+.chip.on{background:var(--c);color:#1a0a3a}
+.mapbox{background:#1a1250;border-radius:24px;border:2px solid #ffffff25;overflow:hidden;box-shadow:0 20px 60px #0008}
+.mtop{display:flex;gap:10px;padding:12px;flex-wrap:wrap}
+#q,.bsearch{flex:1;min-width:160px;padding:11px 18px;border-radius:999px;border:2px solid var(--cy);background:#ffffff12;color:var(--tx);font:inherit}
+#q::placeholder,.bsearch::placeholder{color:var(--mut)}
+#map{height:68vh;min-height:380px}
+#st{padding:10px 16px;font-size:.85rem;color:var(--cy);background:#00000040}
+.blab{background:#ff9ecbe6;border:1px solid #fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:800;color:#1a0a3a;white-space:nowrap;width:auto!important;height:auto!important}
+.lowz .blab{display:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.card{background:var(--card);border-radius:20px;padding:22px;border-top:4px solid var(--c);transition:transform .2s}
+.card:hover{transform:translateY(-6px)}
+.card i{font-style:normal;font-size:2rem}
+.card h3{margin:8px 0 4px}
+.card p{color:var(--mut);font-size:.95rem}
+.bsearch{display:block;width:100%;max-width:420px;margin:0 auto 14px}
+.bar{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;font-size:.85rem;color:var(--mut);margin-bottom:12px}
+.bar i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px}
+.bgrid{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-height:340px;overflow-y:auto;padding:6px}
+.bgrid span{padding:6px 13px;border-radius:999px;font-size:.88rem;background:#ffffff12;border:1px solid var(--yel);cursor:pointer}
+.bgrid span.rio{border-color:var(--pink);background:#ff2e9330}
+.cities{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.cities span{background:#ffffff14;padding:8px 16px;border-radius:999px;border:1px solid #ffffff25}
+.cities .star{background:var(--pink);font-weight:800}
+.final{text-align:center;background:linear-gradient(120deg,var(--pink),var(--or),var(--yel));color:#1a0a3a;border-radius:28px;padding:40px 20px;margin:20px 0 40px}
+.final .btn{background:#1a0a3a;color:#fff;box-shadow:none}
+footer{text-align:center;color:var(--mut);font-size:.85rem;padding:20px 0 30px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav><div class="logo">Sova<b>li</b> 📍</div><a class="btn" href="#mapa">Abrir mapa</a></nav>
+
+<header class="hero">
+<span class="tag">🌎 Tu ubicación en tiempo real</span>
+<h1>Encuentra todo en <span>Barranquilla</span> y Colombia</h1>
+<p>Sovali te muestra dónde estás, y también calles, avenidas, edificios, restaurantes, puntos de comida y cachucherías, con el mayor detalle de la Arenosa.</p>
+<div class="cta"><a class="btn" href="#mapa">Explorar el mapa</a><button class="btn alt" onclick="goLocate()">📡 Ubicarme ahora</button></div>
+</header>
+
+<section id="mapa">
+<h2>Mapa real</h2>
+<p class="sub">Acerca el mapa para ver restaurantes, comida, cachucherías y lugares reales.</p>
+<div class="mapbox">
+<div class="mtop"><input id="q" list="dl" placeholder="🔎 Busca barrio, calle o lugar…"><datalist id="dl"></datalist><button class="btn" style="padding:10px 18px" onclick="buscar()">Buscar</button><button class="btn alt" style="padding:10px 18px" onclick="locate()">📡 Ubicarme</button></div>
+<div class="chips" id="chips" style="padding:0 12px 10px"></div>
+<div id="map"></div>
+<div id="st">Sovali v4 · cargando mapa…</div>
+</div>
+</section>
+
+<section>
+<h2>Todo lo que necesitas</h2>
+<p class="sub">Un mapa pensado para moverte como un local.</p>
+<div class="grid">
+<div class="card" style="--c:var(--pink)"><i>📡</i><h3>Tiempo real</h3><p>Mira tu punto exacto moverse mientras caminas, manejas o vas en bus.</p></div>
+<div class="card" style="--c:var(--yel)"><i>🛣️</i><h3>Calles y autopistas</h3><p>Carreras, calles, avenidas y vías principales claramente trazadas.</p></div>
+<div class="card" style="--c:var(--cy)"><i>🍽️</i><h3>Comida cerca</h3><p>Restaurantes, comida rápida y cafés a pocos pasos.</p></div>
+<div class="card" style="--c:var(--or)"><i>🧢</i><h3>Cachucherías y tiendas</h3><p>Encuentra gorras, accesorios y comercio de barrio en tu zona.</p></div>
+<div class="card" style="--c:#8a3dff"><i>🏢</i><h3>Edificios y lugares</h3><p>Museos, parques, zoológicos y puntos de referencia.</p></div>
+<div class="card" style="--c:var(--pink)"><i>🌍</i><h3>Mundo completo</h3><p>Explora cualquier lugar del planeta, con foco en Colombia.</p></div>
+</div>
+</section>
+
+<section id="barrios">
+<h2>Barrios de Barranquilla</h2>
+<p class="sub" id="bcount"></p>
+<input class="bsearch" id="bq" type="search" placeholder="🔎 Busca tu barrio…" oninput="drawB()">
+<div class="bar"><span><i style="background:var(--pink)"></i>Localidad Riomar</span><span><i style="background:var(--yel)"></i>Otros barrios</span></div>
+<div class="bgrid" id="bgrid"></div>
+<p class="sub" style="margin-top:12px;font-size:.8rem">Toca un barrio para verlo en el mapa. Lista basada en el listado por localidades de la Alcaldía; puede haber barrios nuevos sin incluir.</p>
+</section>
+
+<section>
+<h2>Ciudades de Colombia</h2>
+<p class="sub">Cobertura que crece contigo.</p>
+<div class="cities"><span class="star">⭐ Barranquilla</span><span>Bogotá</span><span>Medellín</span><span>Cali</span><span>Cartagena</span><span>Santa Marta</span><span>Bucaramanga</span><span>Pereira</span></div>
+</section>
+
+<div class="final">
+<h2>Tu ciudad te espera</h2>
+<p style="margin:8px 0 20px">Empieza a explorar con Sovali hoy.</p>
+<button class="btn" onclick="goLocate()">Ubicarme en el mapa</button>
+</div>
+<footer>© 2026 Sovali · Hecho con 💛 para Colombia · Mapa © colaboradores de OpenStreetMap · v4</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+window.onerror=function(m,s,l){if(String(m).indexOf("Leaflet")>-1)return;var e=document.getElementById("st");if(e)e.textContent="⚠️ Error: "+m+" (línea "+l+")"};
+if(typeof L==="undefined"){document.getElementById("st").textContent="⚠️ No cargó el mapa (Leaflet). Revisa tu internet o desactiva bloqueadores.";throw new Error("Leaflet")}
+var map=L.map("map").setView([10.9639,-74.7964],15);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"}).addTo(map);
+var st=document.getElementById("st");
+function esc(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML}
+function norm(s){return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
+
+var CATS={
+ rest:{n:"🍽️ Restaurantes",c:"#ff2e93",on:true,q:'nwr["amenity"="restaurant"]'},
+ fast:{n:"🍟 Comida rápida",c:"#ffc400",on:true,q:'nwr["amenity"="fast_food"]'},
+ cafe:{n:"☕ Cafés",c:"#ff7a1a",on:false,q:'nwr["amenity"="cafe"]'},
+ cach:{n:"🧢 Cachucherías y moda",c:"#8a3dff",on:true,q:'nwr["shop"~"clothes|fashion_accessories|hat|boutique"]'},
+ tien:{n:"🛒 Tiendas",c:"#00b8a0",on:false,q:'nwr["shop"~"supermarket|convenience"]'},
+ lug:{n:"🏛️ Lugares",c:"#2a7bff",on:true,q:'nwr["tourism"~"attraction|museum|zoo"]'},
+ bar:{n:"🏘️ Barrios",c:"#ff9ecb",on:true}
+};
+var groups={},seen={},chips=document.getElementById("chips");
+Object.keys(CATS).forEach(function(k){
+ groups[k]=L.layerGroup();seen[k]={};
+ if(CATS[k].on)groups[k].addTo(map);
+ var b=document.createElement("button");
+ b.className="chip"+(CATS[k].on?" on":"");b.textContent=CATS[k].n;b.style.setProperty("--c",CATS[k].c);
+ b.onclick=function(){CATS[k].on=!CATS[k].on;b.classList.toggle("on",CATS[k].on);if(CATS[k].on){groups[k].addTo(map);if(k!=="bar"&&map.getZoom()<14)map.setZoom(15);else loadPlaces()}else map.removeLayer(groups[k])};
+ chips.appendChild(b);
+});
+function catOf(t){
+ if(t.amenity==="restaurant")return"rest";
+ if(t.amenity==="fast_food")return"fast";
+ if(t.amenity==="cafe")return"cafe";
+ if(t.shop&&/clothes|fashion_accessories|hat|boutique/.test(t.shop))return"cach";
+ if(t.shop&&/supermarket|convenience/.test(t.shop))return"tien";
+ if(t.tourism)return"lug";
+}
+var EP=["https://overpass-api.de/api/interpreter","https://overpass.kumi.systems/api/interpreter","https://overpass.private.coffee/api/interpreter"];
+function overpass(q,i){
+ i=i||0;
+ return fetch(EP[i],{method:"POST",body:"data="+encodeURIComponent(q)}).then(function(r){if(!r.ok)throw new Error("overpass");return r.json()}).catch(function(e){if(i<EP.length-1)return overpass(q,i+1);throw e});
+}
+function fallback(){
+ var b=map.getBounds(),vb=[b.getWest(),b.getNorth(),b.getEast(),b.getSouth()].join(","),n=0,fails=0,
+ W={rest:"restaurant",fast:"fast food",cafe:"cafe",cach:"clothes",tien:"supermarket",lug:"tourist attraction"},
+ ks=Object.keys(W).filter(function(k){return CATS[k].on});
+ st.textContent="⏳ Usando búsqueda alternativa…";
+ ks.reduce(function(p,k){return p.then(function(){
+  return fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=40&bounded=1&accept-language=es&viewbox="+vb+"&q="+encodeURIComponent(W[k]))
+  .then(function(r){return r.json()}).then(function(d){
+   d.forEach(function(e){
+    var id="n"+e.place_id;if(seen[k][id])return;seen[k][id]=1;n++;
+    L.circleMarker([parseFloat(e.lat),parseFloat(e.lon)],{radius:8,color:"#fff",weight:2,fillColor:CATS[k].c,fillOpacity:1}).addTo(groups[k])
+     .bindPopup("<b>"+esc(e.name||e.display_name.split(",")[0])+"</b><br>"+CATS[k].n);
+   });
+  }).catch(function(){fails++});
+ })},Promise.resolve()).then(function(){
+  st.textContent=(fails&&fails===ks.length)?"⚠️ No pudimos conectar con OpenStreetMap. Revisa tu internet o desactiva bloqueadores de anuncios y vuelve a tocar la categoría.":n?"✅ "+n+" lugares encontrados (búsqueda alternativa).":"No encontramos lugares de esas categorías aquí. Mueve el mapa o activa otra categoría.";
+ });
+}
+var timer;
+function loadPlaces(){
+ clearTimeout(timer);
+ timer=setTimeout(function(){
+  if(map.getZoom()<14){st.textContent="🔍 Acerca el mapa un poco más para ver restaurantes, tiendas y lugares.";return}
+  var b=map.getBounds(),bb="("+b.getSouth()+","+b.getWest()+","+b.getNorth()+","+b.getEast()+")";
+  var parts=Object.keys(CATS).filter(function(k){return CATS[k].on&&CATS[k].q}).map(function(k){return CATS[k].q+bb+";"}).join("");
+  if(!parts)return;
+  st.textContent="⏳ Buscando lugares reales…";
+  overpass("[out:json][timeout:25];("+parts+");out center 400;").then(function(d){
+   var n=0;
+   d.elements.forEach(function(e){
+    var t=e.tags||{},k=catOf(t);if(!k||seen[k][e.id])return;
+    var lat=e.lat||(e.center&&e.center.lat),lon=e.lon||(e.center&&e.center.lon);if(!lat)return;
+    seen[k][e.id]=1;n++;
+    L.circleMarker([lat,lon],{radius:8,color:"#fff",weight:2,fillColor:CATS[k].c,fillOpacity:1}).addTo(groups[k])
+     .bindPopup("<b>"+esc(t.name||"Sin nombre")+"</b><br>"+CATS[k].n+(t.cuisine?"<br>Cocina: "+esc(t.cuisine):"")+(t.opening_hours?"<br>Horario: "+esc(t.opening_hours):""));
+   });
+   st.textContent="✅ "+n+" lugares nuevos en esta zona (datos de OpenStreetMap).";
+  }).catch(fallback);
+ },700);
+}
+map.on("moveend",loadPlaces);
+
+var barrios={};
+overpass('[out:json][timeout:25];node["place"~"suburb|neighbourhood|quarter"](10.88,-74.90,11.06,-74.76);out 800;').then(function(d){
+ var dl=document.getElementById("dl");
+ d.elements.forEach(function(e){
+  var nm=e.tags&&e.tags.name;if(!nm||barrios[norm(nm)])return;
+  barrios[norm(nm)]=[e.lat,e.lon];
+  L.marker([e.lat,e.lon],{icon:L.divIcon({className:"",html:"<div class='blab'>"+esc(nm)+"</div>",iconSize:null})}).addTo(groups.bar).bindPopup("<b>"+esc(nm)+"</b><br>Barrio de Barranquilla");
+  var o=document.createElement("option");o.value=nm;dl.appendChild(o);
+ });
+ st.textContent="🏘️ "+Object.keys(barrios).length+" barrios cargados desde OpenStreetMap.";
+}).catch(function(){st.textContent="⚠️ No se pudieron cargar los barrios."});
+function goBarrio(n){
+ var b=barrios[norm(n)];
+ document.getElementById("mapa").scrollIntoView({behavior:"smooth"});
+ if(b)map.flyTo(b,16);else{document.getElementById("q").value=n;buscar()}
+}
+var sm;
+function buscar(){
+ var v=document.getElementById("q").value.trim();if(!v)return;
+ var b=barrios[norm(v)];
+ if(b){map.flyTo(b,16);return}
+ st.textContent="🔎 Buscando “"+v+"”…";
+ fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=co&accept-language=es&viewbox=-74.92,11.08,-74.72,10.86&q="+encodeURIComponent(v+" Barranquilla"))
+  .then(function(r){return r.json()}).then(function(d){
+   if(!d.length){st.textContent="No encontramos “"+v+"”. Prueba con otro nombre.";return}
+   var p=[parseFloat(d[0].lat),parseFloat(d[0].lon)];
+   if(sm)map.removeLayer(sm);
+   sm=L.marker(p).addTo(map).bindPopup("<b>"+esc(v)+"</b><br><small>"+esc(d[0].display_name)+"</small>").openPopup();
+   map.flyTo(p,17);
+   st.textContent="📍 Encontrado: "+d[0].display_name;
+  }).catch(function(){st.textContent="⚠️ No se pudo buscar ahora. Intenta de nuevo en unos segundos."});
+}
+document.getElementById("q").addEventListener("keydown",function(e){if(e.key==="Enter")buscar()});
+document.getElementById("q").addEventListener("change",buscar);
+function zoomClass(){document.getElementById("map").classList.toggle("lowz",map.getZoom()<14)}
+map.on("zoomend",zoomClass);zoomClass();
+
+var me,acc,watching=false,first=true;
+function locate(){
+ if(!navigator.geolocation){st.textContent="Tu navegador no permite ubicación.";return}
+ if(watching&&me){map.flyTo(me.getLatLng(),17);return}
+ watching=true;st.textContent="📡 Buscando tu ubicación…";
+ navigator.geolocation.watchPosition(function(p){
+  var ll=[p.coords.latitude,p.coords.longitude];
+  if(!me){
+   acc=L.circle(ll,{radius:p.coords.accuracy,color:"#00e0c6",fillOpacity:.12}).addTo(map);
+   me=L.circleMarker(ll,{radius:9,color:"#fff",weight:3,fillColor:"#00e0c6",fillOpacity:1}).addTo(map).bindPopup("📍 Estás aquí");
+  }else{me.setLatLng(ll);acc.setLatLng(ll);acc.setRadius(p.coords.accuracy)}
+  if(first){map.flyTo(ll,17);first=false}
+  st.textContent="📍 "+ll[0].toFixed(5)+", "+ll[1].toFixed(5)+" · precisión ±"+Math.round(p.coords.accuracy)+" m";
+ },function(){watching=false;st.textContent="No pudimos acceder a tu ubicación: revisa el permiso del navegador y que uses https."},{enableHighAccuracy:true,maximumAge:2000,timeout:15000});
+}
+function goLocate(){document.getElementById("mapa").scrollIntoView({behavior:"smooth"});locate()}
+
+var RIO="Villa Santos|El Poblado|Altamira|San Vicente|Altos del Limón|Altos de Riomar|Santa Mónica|Riomar|Andalucía|Villa Campestre|Las Flores|La Floresta|San Salvador|Siape|Las Tres Avemarías|Villa del Este|El Castillo|Solaire|El Limoncito|La Castellana|Villa Carolina|Brinca y Pea".split("|");
+var OTR="La Campiña|El Tabor|Miramar|Granadillo|Los Alpes|Nuevo Horizonte|El Porvenir|Altos del Prado|El Golf|Ciudad Jardín|El Country|Paraíso|Los Nogales|La Concepción|San Francisco|Santa Ana|América|Colombia|El Prado|Bellavista|Modelo|Montecristo|Barrio Abajo|La Cumbre|Campo Alegre|Las Colinas|Los Jobos|Las Mercedes|Betania|Las Delicias|El Recreo|Boston|El Rosario|Centro|Barlovento|Villanueva|El Boliche|La Sierra|La Victoria|Los Continentes|Kennedy|La Sierrita|El Santuario|Las Américas|Carrizal|Buenos Aires|Santo Domingo de Guzmán|Villa San Pedro|San Luis|Veinte de Julio|Santa María|Villa Sevilla|Las Granjas|Siete de Abril|Los Girasoles|Ciudadela Veinte de Julio|Santa Helena|San Roque|Realengo|La Pradera|Los Olivos|El Pueblo|Las Estrellas|Pastoral Social|Villa del Rosario|Las Terrazas|Mercedes Sur|Por Fin|La Paz|Mequejo|La Manga|7 de Agosto|Evaristo Sourdis|Lipaya|Olaya|El Silencio|La Libertad|Nueva Granada|Santo Domingo|Lucero|Los Pinos|Loma Fresca|San Isidro|Alfonso López|Los Andes|San Felipe|Carlos Meisel|Nueva Colombia|Las Malvinas|Los Rosales|Pumarejo|Villate|El Carmen|Buena Esperanza|La Ceiba|La Esmeralda|El Bosque|Chiquinquirá|San Pedro Alejandrino|La Gloria|Villa Flor|El Romance|California|San Pedro|Cordialidad|Las Torres|Ciudad Modesto|Paloquemao|Cevillar|Atlántico|Villa Blanca|El Valle|Rebolo|Montes|San José|Boyacá|Los Trupillos|La Luz|La Chinita|Las Nieves|La Unión|El Campito|Las Palmas|La Magdalena|El Limón|El Tayrona|Universal|Las Dunas|San Nicolás|José Antonio Galán (Cacho Solo)|El Milagro|Los Laureles|Bella Arena|Villa del Carmen|La Alboraya|Ciudad Cisneros|El Parque|Las Gaviotas|Simón Bolívar".split("|");
+var ALLB=RIO.map(function(n){return[n,1]}).concat(OTR.map(function(n){return[n,0]})).sort(function(a,b){return a[0].localeCompare(b[0],"es")});
+function drawB(){
+ var q=norm(document.getElementById("bq").value),h="",n=0;
+ ALLB.forEach(function(b){if(norm(b[0]).indexOf(q)>-1){n++;h+="<span class='"+(b[1]?"rio":"")+"' onclick='goBarrio(this.textContent)'>"+b[0]+"</span>"}});
+ document.getElementById("bgrid").innerHTML=h||"<p class='sub'>No encontramos ese barrio.</p>";
+ document.getElementById("bcount").textContent=q?n+" resultados":ALLB.length+" barrios de las 5 localidades: Riomar, Norte-Centro Histórico, Metropolitana, Sur Occidente y Sur Oriente";
+}
+drawB();
+</script>
+</body>
+</html>
