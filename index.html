@@ -72,10 +72,10 @@ footer{text-align:center;color:var(--mut);font-size:.85rem;padding:20px 0 30px}
 <h2>Mapa real</h2>
 <p class="sub">Acerca el mapa para ver restaurantes, comida, cachucherías y lugares reales.</p>
 <div class="mapbox">
-<div class="mtop"><input id="q" list="dl" placeholder="🔎 Busca un barrio…"><datalist id="dl"></datalist><button class="btn alt" style="padding:10px 18px" onclick="locate()">📡 Ubicarme</button></div>
+<div class="mtop"><input id="q" list="dl" placeholder="🔎 Busca barrio, calle o lugar…"><datalist id="dl"></datalist><button class="btn" style="padding:10px 18px" onclick="buscar()">Buscar</button><button class="btn alt" style="padding:10px 18px" onclick="locate()">📡 Ubicarme</button></div>
 <div class="chips" id="chips" style="padding:0 12px 10px"></div>
 <div id="map"></div>
-<div id="st">Cargando mapa…</div>
+<div id="st">Sovali v4 · cargando mapa…</div>
 </div>
 </section>
 
@@ -112,12 +112,14 @@ footer{text-align:center;color:var(--mut);font-size:.85rem;padding:20px 0 30px}
 <p style="margin:8px 0 20px">Empieza a explorar con Sovali hoy.</p>
 <button class="btn" onclick="goLocate()">Ubicarme en el mapa</button>
 </div>
-<footer>© 2026 Sovali · Hecho con 💛 para Colombia · Mapa © colaboradores de OpenStreetMap</footer>
+<footer>© 2026 Sovali · Hecho con 💛 para Colombia · Mapa © colaboradores de OpenStreetMap · v4</footer>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
-var map=L.map("map").setView([10.9685,-74.7813],13);
+window.onerror=function(m,s,l){if(String(m).indexOf("Leaflet")>-1)return;var e=document.getElementById("st");if(e)e.textContent="⚠️ Error: "+m+" (línea "+l+")"};
+if(typeof L==="undefined"){document.getElementById("st").textContent="⚠️ No cargó el mapa (Leaflet). Revisa tu internet o desactiva bloqueadores.";throw new Error("Leaflet")}
+var map=L.map("map").setView([10.9639,-74.7964],15);
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"}).addTo(map);
 var st=document.getElementById("st");
 function esc(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML}
@@ -138,7 +140,7 @@ Object.keys(CATS).forEach(function(k){
  if(CATS[k].on)groups[k].addTo(map);
  var b=document.createElement("button");
  b.className="chip"+(CATS[k].on?" on":"");b.textContent=CATS[k].n;b.style.setProperty("--c",CATS[k].c);
- b.onclick=function(){CATS[k].on=!CATS[k].on;b.classList.toggle("on",CATS[k].on);if(CATS[k].on){groups[k].addTo(map);loadPlaces()}else map.removeLayer(groups[k])};
+ b.onclick=function(){CATS[k].on=!CATS[k].on;b.classList.toggle("on",CATS[k].on);if(CATS[k].on){groups[k].addTo(map);if(k!=="bar"&&map.getZoom()<14)map.setZoom(15);else loadPlaces()}else map.removeLayer(groups[k])};
  chips.appendChild(b);
 });
 function catOf(t){
@@ -149,12 +151,34 @@ function catOf(t){
  if(t.shop&&/supermarket|convenience/.test(t.shop))return"tien";
  if(t.tourism)return"lug";
 }
-function overpass(q){return fetch("https://overpass-api.de/api/interpreter",{method:"POST",body:"data="+encodeURIComponent(q)}).then(function(r){return r.json()})}
+var EP=["https://overpass-api.de/api/interpreter","https://overpass.kumi.systems/api/interpreter","https://overpass.private.coffee/api/interpreter"];
+function overpass(q,i){
+ i=i||0;
+ return fetch(EP[i],{method:"POST",body:"data="+encodeURIComponent(q)}).then(function(r){if(!r.ok)throw new Error("overpass");return r.json()}).catch(function(e){if(i<EP.length-1)return overpass(q,i+1);throw e});
+}
+function fallback(){
+ var b=map.getBounds(),vb=[b.getWest(),b.getNorth(),b.getEast(),b.getSouth()].join(","),n=0,fails=0,
+ W={rest:"restaurant",fast:"fast food",cafe:"cafe",cach:"clothes",tien:"supermarket",lug:"tourist attraction"},
+ ks=Object.keys(W).filter(function(k){return CATS[k].on});
+ st.textContent="⏳ Usando búsqueda alternativa…";
+ ks.reduce(function(p,k){return p.then(function(){
+  return fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=40&bounded=1&accept-language=es&viewbox="+vb+"&q="+encodeURIComponent(W[k]))
+  .then(function(r){return r.json()}).then(function(d){
+   d.forEach(function(e){
+    var id="n"+e.place_id;if(seen[k][id])return;seen[k][id]=1;n++;
+    L.circleMarker([parseFloat(e.lat),parseFloat(e.lon)],{radius:8,color:"#fff",weight:2,fillColor:CATS[k].c,fillOpacity:1}).addTo(groups[k])
+     .bindPopup("<b>"+esc(e.name||e.display_name.split(",")[0])+"</b><br>"+CATS[k].n);
+   });
+  }).catch(function(){fails++});
+ })},Promise.resolve()).then(function(){
+  st.textContent=(fails&&fails===ks.length)?"⚠️ No pudimos conectar con OpenStreetMap. Revisa tu internet o desactiva bloqueadores de anuncios y vuelve a tocar la categoría.":n?"✅ "+n+" lugares encontrados (búsqueda alternativa).":"No encontramos lugares de esas categorías aquí. Mueve el mapa o activa otra categoría.";
+ });
+}
 var timer;
 function loadPlaces(){
  clearTimeout(timer);
  timer=setTimeout(function(){
-  if(map.getZoom()<15){st.textContent="🔍 Acerca el mapa (zoom 15 o más) para ver restaurantes, tiendas y lugares.";return}
+  if(map.getZoom()<14){st.textContent="🔍 Acerca el mapa un poco más para ver restaurantes, tiendas y lugares.";return}
   var b=map.getBounds(),bb="("+b.getSouth()+","+b.getWest()+","+b.getNorth()+","+b.getEast()+")";
   var parts=Object.keys(CATS).filter(function(k){return CATS[k].on&&CATS[k].q}).map(function(k){return CATS[k].q+bb+";"}).join("");
   if(!parts)return;
@@ -169,7 +193,7 @@ function loadPlaces(){
      .bindPopup("<b>"+esc(t.name||"Sin nombre")+"</b><br>"+CATS[k].n+(t.cuisine?"<br>Cocina: "+esc(t.cuisine):"")+(t.opening_hours?"<br>Horario: "+esc(t.opening_hours):""));
    });
    st.textContent="✅ "+n+" lugares nuevos en esta zona (datos de OpenStreetMap).";
-  }).catch(function(){st.textContent="⚠️ No se pudo consultar Overpass. Intenta de nuevo en unos segundos."});
+  }).catch(fallback);
  },700);
 }
 map.on("moveend",loadPlaces);
@@ -188,9 +212,26 @@ overpass('[out:json][timeout:25];node["place"~"suburb|neighbourhood|quarter"](10
 function goBarrio(n){
  var b=barrios[norm(n)];
  document.getElementById("mapa").scrollIntoView({behavior:"smooth"});
- if(b)map.flyTo(b,16);else st.textContent="Ese barrio aún no está marcado en OpenStreetMap.";
+ if(b)map.flyTo(b,16);else{document.getElementById("q").value=n;buscar()}
 }
-document.getElementById("q").onchange=function(){goBarrio(this.value)};
+var sm;
+function buscar(){
+ var v=document.getElementById("q").value.trim();if(!v)return;
+ var b=barrios[norm(v)];
+ if(b){map.flyTo(b,16);return}
+ st.textContent="🔎 Buscando “"+v+"”…";
+ fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=co&accept-language=es&viewbox=-74.92,11.08,-74.72,10.86&q="+encodeURIComponent(v+" Barranquilla"))
+  .then(function(r){return r.json()}).then(function(d){
+   if(!d.length){st.textContent="No encontramos “"+v+"”. Prueba con otro nombre.";return}
+   var p=[parseFloat(d[0].lat),parseFloat(d[0].lon)];
+   if(sm)map.removeLayer(sm);
+   sm=L.marker(p).addTo(map).bindPopup("<b>"+esc(v)+"</b><br><small>"+esc(d[0].display_name)+"</small>").openPopup();
+   map.flyTo(p,17);
+   st.textContent="📍 Encontrado: "+d[0].display_name;
+  }).catch(function(){st.textContent="⚠️ No se pudo buscar ahora. Intenta de nuevo en unos segundos."});
+}
+document.getElementById("q").addEventListener("keydown",function(e){if(e.key==="Enter")buscar()});
+document.getElementById("q").addEventListener("change",buscar);
 function zoomClass(){document.getElementById("map").classList.toggle("lowz",map.getZoom()<14)}
 map.on("zoomend",zoomClass);zoomClass();
 
